@@ -1,0 +1,19 @@
+{
+  "fixture_type": "false_positive_risk",
+  "description": "Unusual but fully policy-compliant transaction. The system must not assert a violation - it must clear it or route to human review, never assert fraud.",
+  "transaction": {
+    "transaction_id": "TXN-RT-01",
+    "date": "2026-05-16T22:30:00",
+    "vendor": "Harborlight Consulting",
+    "amount": 9800.0,
+    "department": "Finance",
+    "account_code": "6010-TRAVEL",
+    "approver": "S. Fontaine",
+    "description": "Single emergency vendor payment approved outside business hours to meet a contractual same-week deadline; business justification documented: 'Approved late per CFO email 2026-05-16 authorizing after-hours release ahead of contract deadline; amount reflects one-time engagement scope, not split from a larger invoice.'"
+  },
+  "why_not_an_anomaly": [
+    "Off-hours approval includes an explicit documented business justification, satisfying POL-HOURS-01.",
+    "Amount is below the structuring scrutiny band's intent: it reflects the full one-time engagement scope, not a split payment, per its own description.",
+    "No banking detail change, no duplicate payment pattern, and the approver has no stated vendor relationship."
+  ]
+}

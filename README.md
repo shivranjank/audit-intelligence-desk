@@ -12,10 +12,13 @@ history of every change, session by session.
 
 | Name | Role |
 |---|---|
-| Hermione | Editor-in-Chief — orchestrates the audit run (plain async Python, not autonomous subagent delegation), scores verdicts against ground truth, runs the redteam fixtures, synthesizes the final executive summary |
+| Hermione | Editor-in-Chief — three real touchpoints: a once-per-batch decompose call (reads the transaction list + aggregate procedural insights, produces an audit brief before any transaction is processed), a per-transaction escalation call (decides whether a flagged verdict needs Moody's review, replacing what used to be a hardcoded rule — see `app/services/hermione.py`), and the closing executive summary. Also scores verdicts against ground truth and runs the redteam fixtures. |
 | Rita | Policy Retrieval — pulls the relevant policy section per transaction via hybrid RAG (FAISS dense + BM25 sparse, fused with RRF, diversified with MMR); no LLM call, pure retrieval |
-| Percy | Analyst — decides whether a transaction violates a policy, grounded in deterministic signals + retrieved policy text + procedural-memory advisories |
-| Moody | Fact-Checker — adversarially re-examines Percy's verdict, resists prompt injection in retrieved text, requires a policy citation before any flag stands, can confirm / overturn / route to human review |
+| Percy | Analyst — decides whether a transaction violates a policy, grounded in deterministic signals + retrieved policy text + procedural-memory advisories + Hermione's batch plan |
+| Moody | Fact-Checker — adversarially re-examines Percy's verdict (only invoked when Hermione's escalation call routes to her), resists prompt injection in retrieved text, requires a policy citation before any flag stands, can confirm / overturn / route to human review |
+
+Percy is the only agent that runs unconditionally on every transaction; Moody now runs based on Hermione's
+judgment rather than a fixed rule. See `ADR.md` for the reasoning.
 
 ## Memory architecture (five tiers)
 
@@ -34,8 +37,8 @@ separate database.
 ## Guardrails (`app/guardrails/`)
 
 - `pii.py` — redacts email/phone/account-number-shaped patterns from human correction notes before persistence
-- `injection.py` — regex pre-check on retrieved policy text, logs a detection (supplements, doesn't replace, Percy/Moody's own prompt-level anti-injection instructions)
-- `citation.py` — rejects/routes-to-human-review a flagged verdict whose cited `policy_ref` doesn't actually appear in the retrieved chunks
+- `injection.py` — regex pre-check on retrieved policy text; a hit **forces `flagged=True`** on the verdict and records it in `Verdict.guardrail_flags` (e.g. `injection_detected:POL-X`), regardless of what Percy/Moody concluded — this is a structural backstop, not just a log line, since Percy/Moody's own prompt-level instructions could in principle fail
+- `citation.py` — same enforcement: forces `flagged=True` and records `citation_check_failed` if a flagged verdict cites a `policy_ref` that isn't actually in the retrieved chunks
 
 Toggled via `config/app_config.yaml`'s `guardrails` section.
 
@@ -61,7 +64,7 @@ Toggled via `config/app_config.yaml`'s `guardrails` section.
 | `GET /health` | Liveness check |
 | `GET /api/v1/audit/run` | SSE stream of a full audit run (~50 transactions + 2 redteam fixtures); optionally gated by `AUDIT_API_KEY` |
 | `GET /api/v1/audit/reports/{session_id}` | Fetch a persisted audit report |
-| `POST /api/v1/audit/verdicts/{transaction_id}/correct` | Record a human correction (feeds Procedural Memory) |
+| `POST /api/v1/audit/verdicts/{transaction_id}/correct` | Record a human correction (feeds Procedural Memory) — requires `session_id` in the body so a correction can never silently attach to the wrong audit run |
 
 ## Running locally
 

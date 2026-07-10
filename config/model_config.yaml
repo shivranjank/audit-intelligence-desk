@@ -17,3 +17,16 @@ moody:
   model: sonnet
   effort: high
   max_turns: 1
+
+# Hermione's two new roles (issue #8): kept cheap/low-effort since decompose runs once
+# per batch and escalation runs once per flagged transaction - the whole point is this
+# shouldn't cost as much as the Moody review it's sometimes gating.
+hermione_decompose:
+  model: sonnet
+  effort: low
+  max_turns: 1
+
+hermione_escalation:
+  model: sonnet
+  effort: low
+  max_turns: 1

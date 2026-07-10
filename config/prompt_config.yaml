@@ -6,3 +6,5 @@ agents:
   hermione: v1
   percy: v1
   moody: v1
+  hermione_decompose: v1
+  hermione_escalation: v1

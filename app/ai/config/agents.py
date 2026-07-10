@@ -32,3 +32,5 @@ def _build_config(name: str) -> AgentConfig:
 HERMIONE = _build_config("hermione")
 PERCY = _build_config("percy")
 MOODY = _build_config("moody")
+HERMIONE_DECOMPOSE = _build_config("hermione_decompose")
+HERMIONE_ESCALATION = _build_config("hermione_escalation")

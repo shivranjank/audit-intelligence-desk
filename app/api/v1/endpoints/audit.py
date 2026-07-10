@@ -73,14 +73,32 @@ async def get_audit_report(session_id: str) -> AuditReport:
 
 
 class CorrectionRequest(BaseModel):
+    session_id: str  # required: disambiguates which audit run's episode this corrects
     notes: str
 
 
 @router.post("/verdicts/{transaction_id}/correct")
 async def record_correction(transaction_id: str, body: CorrectionRequest) -> dict:
     """Records a human correction to a past verdict (Episodic Memory), which feeds
-    dynamic Procedural Memory's advisory synthesis on the next audit run."""
-    logger.info(f"POST /api/v1/audit/verdicts/{transaction_id}/correct")
-    get_audit_store().record_correction(transaction_id, body.notes)
+    dynamic Procedural Memory's advisory synthesis on the next audit run.
+
+    session_id is required so a correction can never silently attach to the wrong
+    audit run if /audit/run was re-triggered since the verdict was reviewed.
+    """
+    logger.info(f"POST /api/v1/audit/verdicts/{transaction_id}/correct | session_id={body.session_id}")
+    found = get_audit_store().record_correction(transaction_id, body.session_id, body.notes)
+    if not found:
+        logger.warning(
+            f"WARNING: /api/v1/audit/verdicts/{transaction_id}/correct | "
+            f"no episode found for session_id={body.session_id}"
+        )
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "status": "error",
+                "code": "EPISODE_NOT_FOUND",
+                "detail": f"No episode for transaction_id={transaction_id} session_id={body.session_id}",
+            },
+        )
     logger.success(f"POST /api/v1/audit/verdicts/{transaction_id}/correct | status=200")
     return {"status": "ok"}

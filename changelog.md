@@ -104,3 +104,30 @@ memory-tiering, and guardrails conventions adopted here.
 **Tests added**: `test_procedural.py` (4 cases, pure), `test_guardrails.py` (7 cases, pure), 4 new cases in `test_audit_store.py` (episodic/procedural round-trips, PII scrubbing on correction notes) — all deterministic, no LLM. Updated `test_integration_agents.py` call sites for the new `_audit_one(..., store)`/`_run_false_positive_redteam(..., store)` signatures.
 
 **Verified**: `uv run ruff check .` clean. `uv run pytest --ignore=tests/test_integration_agents.py` — 34/34 passed. `uv run pytest tests/test_integration_agents.py` (live-LLM, ~$1) — 4/4 passed against the fully refactored pipeline (WorkingMemory, Episodic Memory recording, guardrails all active).
+
+## Session 2026-07-10 — Issues #6, #7, #8 (enforcing guardrails, session-scoped corrections, Hermione real authority)
+
+**#6 — injection guardrail now enforces, not just logs**
+- `app/services/orchestrator.py::_apply_guardrails()` — both the injection check and the citation check now force `flagged=True` and record the hit in a new `Verdict.guardrail_flags: list[str]` field (e.g. `injection_detected:POL-X`, `citation_check_failed`), uniformly. Previously the injection check only logged a warning with zero effect on the verdict — the system's entire defense against prompt injection was "the LLM happens to resist it," with no structural backstop.
+- `app/models/schemas.py` — added `Verdict.guardrail_flags`.
+- `tests/test_guardrails.py` — added 3 deterministic tests calling `_apply_guardrails()` directly (injection forces flagged, citation-failure forces flagged, clean case stays untouched) — no LLM needed to verify the enforcement logic itself.
+
+**#7 — corrections require an exact `(transaction_id, session_id)` match**
+- `app/models/schemas.py` — `EpisodicEntry` gained a required `session_id` field.
+- `app/services/audit_store.py` — `EpisodicVerdictRecord` gained a `session_id` column; `record_correction()` now requires an exact `(transaction_id, session_id)` match (both the SQL-backed and `InMemoryAuditStore` implementations) and returns `bool` instead of silently guessing "most recent episode for this transaction_id."
+- `app/api/v1/endpoints/audit.py` — `CorrectionRequest` gained a required `session_id` field; the endpoint returns a structured 404 (`EPISODE_NOT_FOUND`) if there's no match, instead of always returning 200.
+- `app/services/orchestrator.py` — `_audit_one()`/`_run_false_positive_redteam()` now take and thread through `session_id` when recording episodes.
+- `tests/test_audit_store.py` — added a case confirming a wrong `session_id` does *not* match; `tests/test_api_audit.py` — added cases for the required-field validation and the new 404.
+
+**#8 — Hermione gets two new real decision points**
+- `app/services/hermione.py` — added: `decompose_batch()` (once per run, before any transaction: reads the transaction list + aggregate procedural insights across all vendors, produces a short audit brief) and `decide_escalation()` (once per flagged transaction: decides `skip_moody` vs `escalate_to_moody`, replacing the hardcoded `if verdict.flagged:` rule that used to invoke Moody unconditionally). Prompt explicitly biases toward escalating on any doubt.
+- `app/ai/prompt/hermione_decompose/v1/prompt.yaml`, `app/ai/prompt/hermione_escalation/v1/prompt.yaml` — added, as distinct roles from the existing `hermione` (closing-summary) prompt.
+- `config/model_config.yaml`, `config/prompt_config.yaml` — added entries for both new roles (low effort — the point is they shouldn't cost as much as the Moody review they sometimes gate). `app/ai/config/agents.py` — added `HERMIONE_DECOMPOSE`/`HERMIONE_ESCALATION`.
+- `app/models/schemas.py` — added `EscalationDecision`; `WorkingMemory.batch_plan`; `Verdict.moody_decision` already existed and is now also used for episodic recording alongside the new escalation route; `AuditReport.batch_plan`, `moody_escalations`, `moody_skipped` — makes the cost argument for skipping Moody measurable instead of asserted.
+- `app/services/percy.py` — `build_prompt()` now includes `memory.batch_plan` as additional context.
+- `app/services/orchestrator.py` — `stream_audit()` calls `decompose_batch()` once at the start and yields a new `batch_plan` SSE event; `_audit_one()` calls `decide_escalation()` for every flagged verdict and only invokes Moody on `escalate_to_moody`; `_run_injection_redteam()` updated to go through the same escalation step (also validates the escalation call itself resists the injection fixture).
+- Verified live: `TXN-0041` (genuine duplicate payment) → Hermione escalated → Moody confirmed. False-positive fixture → Percy correctly cleared it outright (this particular run never exercised the escalation call's own bias-to-escalate behavior, since Percy never flagged it — worth a follow-up check specifically targeting that path).
+
+**Also fixed**: `pyproject.toml` — added `testpaths = ["tests"]` to `[tool.pytest.ini_options]`. A stray `FinalProject_Code/` export-artifact directory (gitignored, not project source) contains its own duplicate `tests/` folder with identical module basenames, which was causing pytest import collisions; scoping `testpaths` avoids collecting it.
+
+**Verified**: `uv run ruff check .` clean. `uv run pytest --ignore=tests/test_integration_agents.py` — 40/40 passed. `uv run pytest tests/test_integration_agents.py` (live-LLM, ~$1) — 4/4 passed.

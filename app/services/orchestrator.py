@@ -11,7 +11,7 @@ from app.ai.config.agents import HERMIONE
 from app.guardrails.citation import verify_citation
 from app.guardrails.injection import detect_injection
 from app.models.schemas import AuditReport, EpisodicEntry, RedteamResult, Transaction, Verdict, WorkingMemory
-from app.services import moody, percy
+from app.services import hermione, moody, percy
 from app.services.audit_store import AuditStore, get_audit_store
 from app.services.llm import run_agent
 from app.services.procedural import synthesize_insight
@@ -64,6 +64,11 @@ def _refresh_procedural_insights(store: AuditStore, transactions: list[Transacti
 
 
 def _apply_guardrails(memory: WorkingMemory, verdict: Verdict) -> Verdict:
+    """Guardrails that actually enforce, not just log: any hit forces flagged=True
+    and is recorded on the verdict's guardrail_flags, regardless of what Percy/Moody
+    concluded. This is the structural backstop if the LLM itself is ever fooled."""
+    new_flags: list[str] = []
+
     if _GUARDRAILS_CONFIG.get("injection_check_enabled", True):
         for chunk in memory.policy_chunks:
             if detect_injection(chunk.text):
@@ -71,18 +76,22 @@ def _apply_guardrails(memory: WorkingMemory, verdict: Verdict) -> Verdict:
                     f"WARNING: guardrail | injection pattern detected in retrieved chunk "
                     f"policy_ref={chunk.policy_ref} transaction_id={memory.transaction.transaction_id}"
                 )
+                new_flags.append(f"injection_detected:{chunk.policy_ref}")
 
     if _GUARDRAILS_CONFIG.get("citation_check_enabled", True) and not verify_citation(verdict, memory.policy_chunks):
         logger.warning(
             f"WARNING: guardrail | citation check failed for policy_ref={verdict.policy_ref!r} "
             f"transaction_id={memory.transaction.transaction_id} - routing to human review"
         )
+        new_flags.append("citation_check_failed")
+
+    if new_flags:
         verdict = verdict.model_copy(
             update={
                 "flagged": True,
+                "guardrail_flags": [*verdict.guardrail_flags, *new_flags],
                 "reasoning": verdict.reasoning
-                + " [GUARDRAIL: cited policy_ref could not be verified against retrieved policy text; "
-                "routed to human review.]",
+                + f" [GUARDRAIL: {', '.join(new_flags)}; forced to human review regardless of agent conclusion.]",
             }
         )
 
@@ -90,25 +99,41 @@ def _apply_guardrails(memory: WorkingMemory, verdict: Verdict) -> Verdict:
 
 
 async def _audit_one(
-    transaction: Transaction, all_transactions: list[Transaction], rag: PolicyRAG, store: AuditStore
-) -> tuple[Verdict, float]:
+    transaction: Transaction,
+    all_transactions: list[Transaction],
+    rag: PolicyRAG,
+    store: AuditStore,
+    session_id: str,
+    batch_plan: str | None = None,
+) -> tuple[Verdict, float, str | None]:
+    """Returns (verdict, total_cost, escalation_route). escalation_route is None if
+    Percy never flagged the transaction (no escalation decision was needed)."""
     memory = WorkingMemory(
         transaction=transaction,
         signals=compute_signals(transaction, all_transactions),
         procedural_insights=store.get_active_procedural_insights(transaction.vendor),
+        batch_plan=batch_plan,
     )
     total_cost = await percy.analyze(memory, rag)
 
     verdict = memory.percy_verdict
+    escalation_route: str | None = None
     if verdict.flagged:
-        moody_cost = await moody.review(memory)
-        total_cost += moody_cost
-        verdict = memory.moody_verdict
+        decision, decision_cost = await hermione.decide_escalation(memory)
+        total_cost += decision_cost
+        memory.escalation_decision = decision
+        escalation_route = decision.route
+
+        if decision.route == "escalate_to_moody":
+            moody_cost = await moody.review(memory)
+            total_cost += moody_cost
+            verdict = memory.moody_verdict
 
     verdict = _apply_guardrails(memory, verdict)
 
     store.record_episode(
         EpisodicEntry(
+            session_id=session_id,
             transaction_id=transaction.transaction_id,
             vendor=transaction.vendor,
             approver=transaction.approver,
@@ -119,7 +144,7 @@ async def _audit_one(
         )
     )
 
-    return verdict, total_cost
+    return verdict, total_cost, escalation_route
 
 
 def _score(verdicts: list[Verdict], ground_truth: dict[str, dict]) -> tuple[float, int, int]:
@@ -138,11 +163,11 @@ def _score(verdicts: list[Verdict], ground_truth: dict[str, dict]) -> tuple[floa
     return accuracy, false_positives, false_negatives
 
 
-async def _run_false_positive_redteam(rag: PolicyRAG, store: AuditStore) -> tuple[RedteamResult, float]:
+async def _run_false_positive_redteam(rag: PolicyRAG, store: AuditStore, session_id: str) -> tuple[RedteamResult, float]:
     fixture = json.loads(FALSE_POSITIVE_FIXTURE_PATH.read_text(encoding="utf-8"))
     transaction = Transaction(**fixture["transaction"])
 
-    verdict, cost = await _audit_one(transaction, [transaction], rag, store)
+    verdict, cost, _escalation_route = await _audit_one(transaction, [transaction], rag, store, session_id)
     passed = not verdict.flagged
     detail = (
         "Correctly cleared the policy-compliant edge case."
@@ -186,9 +211,15 @@ async def _run_injection_redteam(clean_rag: PolicyRAG, transactions: list[Transa
     total_cost = cost
     verdict = memory.percy_verdict
     if verdict.flagged:
-        moody_cost = await moody.review(memory)
-        total_cost += moody_cost
-        verdict = memory.moody_verdict
+        decision, decision_cost = await hermione.decide_escalation(memory)
+        total_cost += decision_cost
+        memory.escalation_decision = decision
+        if decision.route == "escalate_to_moody":
+            moody_cost = await moody.review(memory)
+            total_cost += moody_cost
+            verdict = memory.moody_verdict
+
+    verdict = _apply_guardrails(memory, verdict)
 
     passed = verdict.flagged
     detail = (
@@ -207,6 +238,8 @@ async def _synthesize_summary(report: AuditReport) -> tuple[str, float]:
         f"Audit run over {len(report.verdicts)} transactions. "
         f"{len(flagged)} flagged. Accuracy vs ground truth: {report.accuracy}. "
         f"False positives: {report.false_positives}. False negatives: {report.false_negatives}. "
+        f"Moody escalations: {report.moody_escalations}. Moody skipped (Hermione judged confident): "
+        f"{report.moody_skipped}. "
         f"Redteam results: {[r.model_dump() for r in report.redteam_results]}. "
         f"Flagged verdicts: {[v.model_dump() for v in flagged]}\n\n"
         "Write the executive summary."
@@ -229,11 +262,22 @@ async def stream_audit():
     store = get_audit_store()
     _refresh_procedural_insights(store, transactions)
 
-    total_cost = 0.0
+    batch_plan, plan_cost = await hermione.decompose_batch(transactions, store)
+    yield "batch_plan", {"plan": batch_plan}
+
+    total_cost = plan_cost
     verdicts: list[Verdict] = []
+    moody_escalations = 0
+    moody_skipped = 0
     for transaction in transactions:
         try:
-            verdict, cost = await _audit_one(transaction, transactions, rag, store)
+            verdict, cost, escalation_route = await _audit_one(
+                transaction, transactions, rag, store, session_id, batch_plan
+            )
+            if escalation_route == "escalate_to_moody":
+                moody_escalations += 1
+            elif escalation_route == "skip_moody":
+                moody_skipped += 1
         except Exception as exc:  # noqa: BLE001 - degrade gracefully per-transaction, don't abort the run
             logger.error(f"FAILED: audit transaction={transaction.transaction_id} | reason={exc}")
             verdict = Verdict(
@@ -249,7 +293,7 @@ async def stream_audit():
     accuracy, false_positives, false_negatives = _score(verdicts, ground_truth)
 
     redteam_results: list[RedteamResult] = []
-    fp_result, fp_cost = await _run_false_positive_redteam(rag, store)
+    fp_result, fp_cost = await _run_false_positive_redteam(rag, store, session_id)
     redteam_results.append(fp_result)
     total_cost += fp_cost
     yield "redteam", fp_result.model_dump()
@@ -262,10 +306,13 @@ async def stream_audit():
     report = AuditReport(
         session_id=session_id,
         started_at=started_at,
+        batch_plan=batch_plan,
         verdicts=verdicts,
         accuracy=accuracy,
         false_positives=false_positives,
         false_negatives=false_negatives,
+        moody_escalations=moody_escalations,
+        moody_skipped=moody_skipped,
         redteam_results=redteam_results,
         total_cost_usd=total_cost,
     )
@@ -277,7 +324,7 @@ async def stream_audit():
 
     logger.success(
         f"GET /audit | session_id={session_id} | accuracy={accuracy} "
-        f"cost_usd={report.total_cost_usd}"
+        f"cost_usd={report.total_cost_usd} escalations={moody_escalations} skipped={moody_skipped}"
     )
     yield "complete", report.model_dump(mode="json")
 

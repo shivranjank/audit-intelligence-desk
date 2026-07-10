@@ -6,6 +6,7 @@ from app.services.procedural import MIN_CORRECTIONS_FOR_INSIGHT, synthesize_insi
 
 def _episode(anomaly_type: str, flagged: bool, corrected: bool) -> EpisodicEntry:
     return EpisodicEntry(
+        session_id="session-1",
         transaction_id="TXN-X",
         vendor="Acme Co",
         approver="A. Test",

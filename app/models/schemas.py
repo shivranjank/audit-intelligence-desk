@@ -47,6 +47,15 @@ class Verdict(BaseModel):
     confirmed_by_moody: bool | None = None
     moody_notes: str | None = None
     moody_decision: str | None = None  # raw "confirm"|"overturn"|"route_to_human_review", for Episodic Memory
+    guardrail_flags: list[str] = []  # e.g. "injection_detected:POL-X", "citation_check_failed" - non-empty means a guardrail forced flagged=True
+
+
+class EscalationDecision(BaseModel):
+    """Hermione's per-transaction judgment on whether Percy's flagged verdict needs
+    Moody's adversarial review, replacing a hardcoded escalation rule."""
+
+    route: Literal["skip_moody", "escalate_to_moody"]
+    reasoning: str
 
 
 class WorkingMemory(BaseModel):
@@ -57,13 +66,16 @@ class WorkingMemory(BaseModel):
     signals: Signals | None = None
     policy_chunks: list[PolicyChunk] = []
     procedural_insights: list[str] = []
+    batch_plan: str | None = None
     percy_verdict: Verdict | None = None
+    escalation_decision: EscalationDecision | None = None
     moody_verdict: Verdict | None = None
 
 
 class EpisodicEntry(BaseModel):
     """One past audit outcome, persisted for future recall (Episodic Memory tier)."""
 
+    session_id: str
     transaction_id: str
     vendor: str
     approver: str
@@ -95,10 +107,13 @@ class AuditReport(BaseModel):
     session_id: str
     started_at: datetime
     completed_at: datetime | None = None
+    batch_plan: str | None = None
     verdicts: list[Verdict] = []
     accuracy: float | None = None
     false_positives: int = 0
     false_negatives: int = 0
+    moody_escalations: int = 0
+    moody_skipped: int = 0
     redteam_results: list[RedteamResult] = []
     summary: str | None = None
     total_cost_usd: float = 0.0

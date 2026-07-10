@@ -27,6 +27,7 @@ def test_episodic_record_and_retrieve() -> None:
     now = datetime.now(UTC)
     store.record_episode(
         EpisodicEntry(
+            session_id="session-1",
             transaction_id="TXN-A",
             vendor="Acme Co",
             approver="A. Test",
@@ -38,6 +39,7 @@ def test_episodic_record_and_retrieve() -> None:
     )
     store.record_episode(
         EpisodicEntry(
+            session_id="session-1",
             transaction_id="TXN-B",
             vendor="Other Vendor",
             approver="B. Test",
@@ -57,6 +59,7 @@ def test_record_correction_updates_matching_episode() -> None:
     store = InMemoryAuditStore()
     store.record_episode(
         EpisodicEntry(
+            session_id="session-1",
             transaction_id="TXN-A",
             vendor="Acme Co",
             approver="A. Test",
@@ -64,12 +67,32 @@ def test_record_correction_updates_matching_episode() -> None:
             created_at=datetime.now(UTC),
         )
     )
-    store.record_correction("TXN-A", "Cleared after review, email jane@acme.com confirmed context")
+    found = store.record_correction("TXN-A", "session-1", "Cleared after review, email jane@acme.com confirmed context")
 
+    assert found is True
     episode = store.get_episodes("Acme Co")[0]
     assert episode.corrected_by_human is True
     assert "REDACTED_EMAIL" in episode.correction_notes
     assert "jane@acme.com" not in episode.correction_notes
+
+
+def test_record_correction_wrong_session_id_does_not_match() -> None:
+    store = InMemoryAuditStore()
+    store.record_episode(
+        EpisodicEntry(
+            session_id="session-1",
+            transaction_id="TXN-A",
+            vendor="Acme Co",
+            approver="A. Test",
+            flagged=True,
+            created_at=datetime.now(UTC),
+        )
+    )
+    found = store.record_correction("TXN-A", "session-2-wrong", "some note")
+
+    assert found is False
+    episode = store.get_episodes("Acme Co")[0]
+    assert episode.corrected_by_human is False
 
 
 def test_procedural_insight_active_vs_expired() -> None:

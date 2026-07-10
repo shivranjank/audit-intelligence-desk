@@ -27,6 +27,7 @@ class EpisodicVerdictRecord(Base):
     __tablename__ = "episodic_verdicts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String, nullable=False, index=True)
     transaction_id = Column(String, nullable=False)
     vendor = Column(String, nullable=False, index=True)
     approver = Column(String, nullable=False)
@@ -66,7 +67,7 @@ class AuditStore(ABC):
     def get_episodes(self, scope_key: str, limit: int = 20) -> list[EpisodicEntry]: ...
 
     @abstractmethod
-    def record_correction(self, transaction_id: str, notes: str) -> None: ...
+    def record_correction(self, transaction_id: str, session_id: str, notes: str) -> bool: ...
 
     @abstractmethod
     def save_procedural_insight(self, insight: ProceduralInsight) -> None: ...
@@ -108,6 +109,7 @@ class _SqlAlchemyAuditStore(AuditStore):
         with self._Session() as session:
             session.add(
                 EpisodicVerdictRecord(
+                    session_id=entry.session_id,
                     transaction_id=entry.transaction_id,
                     vendor=entry.vendor,
                     approver=entry.approver,
@@ -133,6 +135,7 @@ class _SqlAlchemyAuditStore(AuditStore):
             )
             return [
                 EpisodicEntry(
+                    session_id=r.session_id,
                     transaction_id=r.transaction_id,
                     vendor=r.vendor,
                     approver=r.approver,
@@ -146,20 +149,28 @@ class _SqlAlchemyAuditStore(AuditStore):
                 for r in records
             ]
 
-    def record_correction(self, transaction_id: str, notes: str) -> None:
+    def record_correction(self, transaction_id: str, session_id: str, notes: str) -> bool:
+        """Requires an exact (transaction_id, session_id) match — no "most recent"
+        guessing, so a correction can never silently attach to the wrong audit run."""
         with self._Session() as session:
             record = (
                 session.query(EpisodicVerdictRecord)
-                .filter(EpisodicVerdictRecord.transaction_id == transaction_id)
-                .order_by(EpisodicVerdictRecord.created_at.desc())
+                .filter(
+                    EpisodicVerdictRecord.transaction_id == transaction_id,
+                    EpisodicVerdictRecord.session_id == session_id,
+                )
                 .first()
             )
             if record is None:
-                logger.warning(f"WARNING: record_correction | no episode found for transaction_id={transaction_id}")
-                return
+                logger.warning(
+                    f"WARNING: record_correction | no episode found for "
+                    f"transaction_id={transaction_id} session_id={session_id}"
+                )
+                return False
             record.corrected_by_human = True
             record.correction_notes = scrub_pii(notes)
             session.commit()
+            return True
 
     def save_procedural_insight(self, insight: ProceduralInsight) -> None:
         with self._Session() as session:
@@ -216,13 +227,17 @@ class InMemoryAuditStore(AuditStore):
         matches = [e for e in self._episodes if e.vendor == scope_key]
         return sorted(matches, key=lambda e: e.created_at, reverse=True)[:limit]
 
-    def record_correction(self, transaction_id: str, notes: str) -> None:
+    def record_correction(self, transaction_id: str, session_id: str, notes: str) -> bool:
         for entry in reversed(self._episodes):
-            if entry.transaction_id == transaction_id:
+            if entry.transaction_id == transaction_id and entry.session_id == session_id:
                 entry.corrected_by_human = True
                 entry.correction_notes = scrub_pii(notes)
-                return
-        logger.warning(f"WARNING: record_correction | no episode found for transaction_id={transaction_id}")
+                return True
+        logger.warning(
+            f"WARNING: record_correction | no episode found for "
+            f"transaction_id={transaction_id} session_id={session_id}"
+        )
+        return False
 
     def save_procedural_insight(self, insight: ProceduralInsight) -> None:
         self._insights.append(insight)

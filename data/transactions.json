@@ -1,0 +1,502 @@
+[
+  {
+    "transaction_id": "TXN-0001",
+    "date": "2026-05-04T10:00:00",
+    "vendor": "Northwind Supplies",
+    "amount": 5971.17,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "S. Fontaine",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0049",
+    "date": "2026-06-19T11:00:00",
+    "vendor": "Rivermark Print & Media",
+    "amount": 2015.09,
+    "department": "Finance",
+    "account_code": "6010-TRAVEL",
+    "approver": "T. Nguyen",
+    "description": "Approver also serves as the primary point of contact for this vendor."
+  },
+  {
+    "transaction_id": "TXN-0018",
+    "date": "2026-05-19T14:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 5295.19,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "T. Nguyen",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0030",
+    "date": "2026-06-01T13:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 604.71,
+    "department": "IT",
+    "account_code": "6410-IT-EQUIP",
+    "approver": "J. Alvarez",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0016",
+    "date": "2026-05-18T12:00:00",
+    "vendor": "Summit Facilities Co",
+    "amount": 6766.39,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "R. Mehta",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0015",
+    "date": "2026-05-18T16:00:00",
+    "vendor": "Rivermark Print & Media",
+    "amount": 2269.09,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "P. Singh",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0012",
+    "date": "2026-05-13T15:00:00",
+    "vendor": "Harborlight Consulting",
+    "amount": 3709.27,
+    "department": "Finance",
+    "account_code": "6010-TRAVEL",
+    "approver": "A. Kowalski",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0025",
+    "date": "2026-05-26T13:00:00",
+    "vendor": "Summit Facilities Co",
+    "amount": 1025.68,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "T. Nguyen",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0005",
+    "date": "2026-05-06T15:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 3676.29,
+    "department": "Marketing",
+    "account_code": "6510-MARKETING",
+    "approver": "A. Kowalski",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0027",
+    "date": "2026-05-28T11:00:00",
+    "vendor": "Bluepeak Logistics",
+    "amount": 6983.57,
+    "department": "IT",
+    "account_code": "6410-IT-EQUIP",
+    "approver": "A. Kowalski",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0009",
+    "date": "2026-05-11T10:00:00",
+    "vendor": "Rivermark Print & Media",
+    "amount": 768.58,
+    "department": "Facilities",
+    "account_code": "6610-FACILITIES",
+    "approver": "A. Kowalski",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0041",
+    "date": "2026-06-11T15:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 2377.3,
+    "department": "Facilities",
+    "account_code": "6610-FACILITIES",
+    "approver": "A. Kowalski",
+    "description": "Invoice settlement for delivered goods."
+  },
+  {
+    "transaction_id": "TXN-0048",
+    "date": "2026-06-20T23:26:00",
+    "vendor": "Alderpine Tech",
+    "amount": 4147.47,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "T. Nguyen",
+    "description": "Approved outside standard business hours."
+  },
+  {
+    "transaction_id": "TXN-0034",
+    "date": "2026-06-04T12:00:00",
+    "vendor": "Harborlight Consulting",
+    "amount": 3282.09,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "P. Singh",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0007",
+    "date": "2026-05-08T14:00:00",
+    "vendor": "Bluepeak Logistics",
+    "amount": 878.05,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "R. Mehta",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0024",
+    "date": "2026-05-25T13:00:00",
+    "vendor": "Northwind Supplies",
+    "amount": 5490.22,
+    "department": "Marketing",
+    "account_code": "6510-MARKETING",
+    "approver": "R. Mehta",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0002",
+    "date": "2026-05-04T11:00:00",
+    "vendor": "Bluepeak Logistics",
+    "amount": 5462.09,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "J. Alvarez",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0023",
+    "date": "2026-05-25T10:00:00",
+    "vendor": "Rivermark Print & Media",
+    "amount": 3145.71,
+    "department": "Facilities",
+    "account_code": "6610-FACILITIES",
+    "approver": "T. Nguyen",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0044",
+    "date": "2026-06-15T10:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 9767.95,
+    "department": "Facilities",
+    "account_code": "6610-FACILITIES",
+    "approver": "S. Fontaine",
+    "description": "One-time consulting engagement payment."
+  },
+  {
+    "transaction_id": "TXN-0047",
+    "date": "2026-06-20T23:03:00",
+    "vendor": "Northwind Supplies",
+    "amount": 6829.48,
+    "department": "Finance",
+    "account_code": "6010-TRAVEL",
+    "approver": "S. Fontaine",
+    "description": "Approved outside standard business hours."
+  },
+  {
+    "transaction_id": "TXN-0045",
+    "date": "2026-06-15T16:00:00",
+    "vendor": "Cedarline Traders",
+    "amount": 2687.53,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "A. Kowalski",
+    "description": "Payment routed to bank details updated same day as invoice, unverified."
+  },
+  {
+    "transaction_id": "TXN-0008",
+    "date": "2026-05-11T14:00:00",
+    "vendor": "Harborlight Consulting",
+    "amount": 6485.96,
+    "department": "IT",
+    "account_code": "6410-IT-EQUIP",
+    "approver": "P. Singh",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0022",
+    "date": "2026-05-25T10:00:00",
+    "vendor": "Cedarline Traders",
+    "amount": 5075.45,
+    "department": "Finance",
+    "account_code": "6010-TRAVEL",
+    "approver": "P. Singh",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0026",
+    "date": "2026-05-27T16:00:00",
+    "vendor": "Northwind Supplies",
+    "amount": 7637.46,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "P. Singh",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0020",
+    "date": "2026-05-21T13:00:00",
+    "vendor": "Rivermark Print & Media",
+    "amount": 7197.91,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "T. Nguyen",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0029",
+    "date": "2026-06-01T09:00:00",
+    "vendor": "Summit Facilities Co",
+    "amount": 3985.55,
+    "department": "Marketing",
+    "account_code": "6510-MARKETING",
+    "approver": "R. Mehta",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0006",
+    "date": "2026-05-07T11:00:00",
+    "vendor": "Rivermark Print & Media",
+    "amount": 2820.97,
+    "department": "Finance",
+    "account_code": "6010-TRAVEL",
+    "approver": "S. Fontaine",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0028",
+    "date": "2026-05-29T12:00:00",
+    "vendor": "Cedarline Traders",
+    "amount": 3085.22,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "S. Fontaine",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0003",
+    "date": "2026-05-04T15:00:00",
+    "vendor": "Northwind Supplies",
+    "amount": 383.91,
+    "department": "Finance",
+    "account_code": "6010-TRAVEL",
+    "approver": "S. Fontaine",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0017",
+    "date": "2026-05-18T09:00:00",
+    "vendor": "Summit Facilities Co",
+    "amount": 3299.14,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "R. Mehta",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0040",
+    "date": "2026-06-10T11:00:00",
+    "vendor": "Alderpine Tech",
+    "amount": 2057.53,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "T. Nguyen",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0050",
+    "date": "2026-06-22T16:00:00",
+    "vendor": "Harborlight Consulting",
+    "amount": 4961.05,
+    "department": "IT",
+    "account_code": "6410-IT-EQUIP",
+    "approver": "P. Singh",
+    "description": "Approver also serves as the primary point of contact for this vendor."
+  },
+  {
+    "transaction_id": "TXN-0011",
+    "date": "2026-05-12T12:00:00",
+    "vendor": "Harborlight Consulting",
+    "amount": 7883.99,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "S. Fontaine",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0033",
+    "date": "2026-06-03T15:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 7441.97,
+    "department": "IT",
+    "account_code": "6410-IT-EQUIP",
+    "approver": "P. Singh",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0031",
+    "date": "2026-06-01T10:00:00",
+    "vendor": "Alderpine Tech",
+    "amount": 6555.78,
+    "department": "Finance",
+    "account_code": "6010-TRAVEL",
+    "approver": "J. Alvarez",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0037",
+    "date": "2026-06-08T12:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 206.45,
+    "department": "Marketing",
+    "account_code": "6510-MARKETING",
+    "approver": "P. Singh",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0039",
+    "date": "2026-06-09T10:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 2336.05,
+    "department": "IT",
+    "account_code": "6410-IT-EQUIP",
+    "approver": "T. Nguyen",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0021",
+    "date": "2026-05-22T12:00:00",
+    "vendor": "Cedarline Traders",
+    "amount": 4149.78,
+    "department": "IT",
+    "account_code": "6410-IT-EQUIP",
+    "approver": "R. Mehta",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0042",
+    "date": "2026-06-12T15:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 2377.3,
+    "department": "Facilities",
+    "account_code": "6610-FACILITIES",
+    "approver": "A. Kowalski",
+    "description": "Invoice settlement for delivered goods."
+  },
+  {
+    "transaction_id": "TXN-0035",
+    "date": "2026-06-05T14:00:00",
+    "vendor": "Alderpine Tech",
+    "amount": 7211.97,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "T. Nguyen",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0038",
+    "date": "2026-06-08T09:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 679.09,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "R. Mehta",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0004",
+    "date": "2026-05-05T09:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 5770.75,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "P. Singh",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0014",
+    "date": "2026-05-15T10:00:00",
+    "vendor": "Cedarline Traders",
+    "amount": 4343.0,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "S. Fontaine",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0019",
+    "date": "2026-05-20T16:00:00",
+    "vendor": "Cedarline Traders",
+    "amount": 2229.31,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "S. Fontaine",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0013",
+    "date": "2026-05-14T14:00:00",
+    "vendor": "Summit Facilities Co",
+    "amount": 1794.63,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "A. Kowalski",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0010",
+    "date": "2026-05-11T14:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 5680.89,
+    "department": "HR",
+    "account_code": "6710-HR-SERVICES",
+    "approver": "R. Mehta",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0032",
+    "date": "2026-06-02T11:00:00",
+    "vendor": "Alderpine Tech",
+    "amount": 7582.76,
+    "department": "Procurement",
+    "account_code": "6210-SUPPLIES",
+    "approver": "S. Fontaine",
+    "description": "Routine purchase order settlement."
+  },
+  {
+    "transaction_id": "TXN-0046",
+    "date": "2026-06-16T12:00:00",
+    "vendor": "Bluepeak Logistics",
+    "amount": 2772.52,
+    "department": "Facilities",
+    "account_code": "6610-FACILITIES",
+    "approver": "J. Alvarez",
+    "description": "Payment routed to bank details updated same day as invoice, unverified."
+  },
+  {
+    "transaction_id": "TXN-0043",
+    "date": "2026-06-15T09:00:00",
+    "vendor": "Bluepeak Logistics",
+    "amount": 9847.22,
+    "department": "Facilities",
+    "account_code": "6610-FACILITIES",
+    "approver": "R. Mehta",
+    "description": "One-time consulting engagement payment."
+  },
+  {
+    "transaction_id": "TXN-0036",
+    "date": "2026-06-08T12:00:00",
+    "vendor": "Vertex Office Solutions",
+    "amount": 652.6,
+    "department": "Finance",
+    "account_code": "6010-TRAVEL",
+    "approver": "R. Mehta",
+    "description": "Routine purchase order settlement."
+  }
+]

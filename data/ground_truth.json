@@ -1,0 +1,302 @@
+[
+  {
+    "transaction_id": "TXN-0001",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0002",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0003",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0004",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0005",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0006",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0007",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0008",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0009",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0010",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0011",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0012",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0013",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0014",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0015",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0016",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0017",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0018",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0019",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0020",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0021",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0022",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0023",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0024",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0025",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0026",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0027",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0028",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0029",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0030",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0031",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0032",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0033",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0034",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0035",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0036",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0037",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0038",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0039",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0040",
+    "is_anomaly": false,
+    "anomaly_type": null,
+    "expected_policy_ref": null
+  },
+  {
+    "transaction_id": "TXN-0041",
+    "is_anomaly": true,
+    "anomaly_type": "duplicate_payment",
+    "expected_policy_ref": "POL-DUP-01"
+  },
+  {
+    "transaction_id": "TXN-0042",
+    "is_anomaly": true,
+    "anomaly_type": "duplicate_payment",
+    "expected_policy_ref": "POL-DUP-01"
+  },
+  {
+    "transaction_id": "TXN-0043",
+    "is_anomaly": true,
+    "anomaly_type": "structuring",
+    "expected_policy_ref": "POL-STRUCT-01"
+  },
+  {
+    "transaction_id": "TXN-0044",
+    "is_anomaly": true,
+    "anomaly_type": "structuring",
+    "expected_policy_ref": "POL-STRUCT-01"
+  },
+  {
+    "transaction_id": "TXN-0045",
+    "is_anomaly": true,
+    "anomaly_type": "mismatched_vendor_details",
+    "expected_policy_ref": "POL-VENDOR-01"
+  },
+  {
+    "transaction_id": "TXN-0046",
+    "is_anomaly": true,
+    "anomaly_type": "mismatched_vendor_details",
+    "expected_policy_ref": "POL-VENDOR-01"
+  },
+  {
+    "transaction_id": "TXN-0047",
+    "is_anomaly": true,
+    "anomaly_type": "off_hours_approval",
+    "expected_policy_ref": "POL-HOURS-01"
+  },
+  {
+    "transaction_id": "TXN-0048",
+    "is_anomaly": true,
+    "anomaly_type": "off_hours_approval",
+    "expected_policy_ref": "POL-HOURS-01"
+  },
+  {
+    "transaction_id": "TXN-0049",
+    "is_anomaly": true,
+    "anomaly_type": "unusual_approver_pairing",
+    "expected_policy_ref": "POL-APPROVER-01"
+  },
+  {
+    "transaction_id": "TXN-0050",
+    "is_anomaly": true,
+    "anomaly_type": "unusual_approver_pairing",
+    "expected_policy_ref": "POL-APPROVER-01"
+  }
+]

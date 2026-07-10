@@ -1,6 +1,7 @@
 import json
 import uuid
 from datetime import UTC, datetime
+from functools import lru_cache
 from pathlib import Path
 
 from loguru import logger
@@ -26,6 +27,20 @@ def load_transactions(path: Path = TRANSACTIONS_PATH) -> list[Transaction]:
 def load_ground_truth(path: Path = GROUND_TRUTH_PATH) -> dict[str, dict]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     return {entry["transaction_id"]: entry for entry in raw}
+
+
+@lru_cache(maxsize=1)
+def get_policy_rag() -> PolicyRAG:
+    """Lazily build (once per process) and cache the PolicyRAG index.
+
+    Building the index loads the embedding model (~3-4s), so this must not be
+    repeated on every stream_audit() call. lru_cache works for direct function
+    calls (as tests do) as well as via the FastAPI app, since it's process-wide
+    rather than tied to any startup/lifespan hook.
+    """
+    rag = PolicyRAG()
+    rag.build_index()
+    return rag
 
 
 async def _audit_one(
@@ -77,7 +92,12 @@ async def _run_false_positive_redteam(rag: PolicyRAG) -> tuple[RedteamResult, fl
 async def _run_injection_redteam(clean_rag: PolicyRAG, transactions: list[Transaction]) -> tuple[RedteamResult, float]:
     """Force-expose the injection fixture alongside real policy text for a known
     anomalous transaction, and confirm the agents still flag it correctly."""
-    off_hours_txn = next(t for t in transactions if t.transaction_id == "TXN-0047")
+    off_hours_txn = next((t for t in transactions if t.transaction_id == "TXN-0047"), None)
+    if off_hours_txn is None:
+        raise ValueError(
+            "Injection redteam fixture requires transaction TXN-0047 to be present in "
+            "data/transactions.json, but it was not found."
+        )
     injection_chunk = load_policy_chunk(INJECTION_FIXTURE_PATH)
 
     sig = compute_signals(off_hours_txn, transactions)
@@ -134,8 +154,7 @@ async def stream_audit():
     transactions = load_transactions()
     ground_truth = load_ground_truth()
 
-    rag = PolicyRAG()
-    rag.build_index()
+    rag = get_policy_rag()
 
     total_cost = 0.0
     verdicts: list[Verdict] = []

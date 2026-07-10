@@ -26,8 +26,10 @@ async def run_agent(
 
     result: str | dict = ""
     cost_usd = 0.0
+    saw_result_message = False
     async for message in query(prompt=user_prompt, options=options):
         if isinstance(message, ResultMessage):
+            saw_result_message = True
             if message.is_error:
                 logger.error(f"FAILED: run_agent | agent={config.name} | reason={message.result}")
                 raise RuntimeError(f"{config.name} agent call failed: {message.result}")
@@ -36,6 +38,12 @@ async def run_agent(
                 result = message.structured_output
             else:
                 result = message.result or ""
+
+    if not saw_result_message:
+        logger.error(f"FAILED: run_agent | agent={config.name} | reason=no ResultMessage yielded by query()")
+        raise RuntimeError(
+            f"{config.name} agent call produced no ResultMessage (process likely failed silently)."
+        )
 
     logger.success(f"ACTION: run_agent | output=agent={config.name} cost_usd={cost_usd}")
     return result, cost_usd

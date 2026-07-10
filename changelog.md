@@ -66,3 +66,41 @@ Fixed the 5 issues found by the code review of Phase 1-6 (`/code-review` against
 - `app/services/orchestrator.py` — fixed (optional #5): `_run_injection_redteam`'s `next(t for t in transactions if t.transaction_id == "TXN-0047")` had no default and would raise an opaque `StopIteration`/`RuntimeError` if that transaction were ever missing from `data/transactions.json`. Added a `None` default and a clear `ValueError` with the transaction ID and file it expects it in.
 - `app/services/llm.py` — fixed (optional #4): `run_agent()` silently returned `("", 0.0)` if `query()` never yielded a `ResultMessage` (e.g. an edge-case process failure), which surfaced downstream as a confusing `TypeError` (indexing a string) rather than a clear error. Now tracks whether a `ResultMessage` was ever seen and raises `RuntimeError` with a clear message if not.
 - Verified: `uv run ruff check .` clean. `uv run pytest` — 24/24 passed (18 pre-existing + 6 new `test_moody.py` cases), including all 4 live-LLM integration tests (~$1 total cost, same as prior sessions). One live-LLM redteam test failed on a first pass due to inherent LLM judgment variance on an edge-case fixture (Moody chose "confirm" over "overturn" for a borderline structuring/off-hours case) — unrelated to the code changes (both old and new `flagged` logic agree when `decision == "confirm"`) — and passed cleanly on rerun, confirmed flaky rather than regressed.
+
+## Session 2026-07-10 — Phases 7-12 (config/prompt restructuring, memory tiers, guardrails)
+
+Research phase (a Plan-only agent, no code changes) explored the user's reference project
+(`../29062026/The Secure Agent`) to ground these additions in a proven pattern rather than
+inventing one from scratch — see that agent's findings for the exact prompt-loader,
+memory-tiering, and guardrails conventions adopted here.
+
+**Phase 7 — Config & prompt restructuring**
+- `app/ai/prompt/{hermione,percy,moody}/v1/prompt.yaml` — added: one YAML file per agent per version (`name`/`version`/`description`/`system` keys), replacing the single `app/ai/prompt/all_sample_prompt.yaml` (removed).
+- `app/ai/config/prompt_loader.py` — added: `load_prompt(agent_name)` with version-fallback (configured version → `v1`), driven by `config/prompt_config.yaml`.
+- `config/model_config.yaml`, `config/prompt_config.yaml`, `config/app_config.yaml` — added (root-level, 3-way split as requested rather than the reference project's single-file pattern): per-agent model/effort, per-agent prompt version, and RAG/guardrail parameters respectively.
+- `app/ai/config/agents.py` — rewritten to build each `AgentConfig` from `model_config.yaml` + `prompt_loader.load_prompt()` instead of a direct single-file `yaml.safe_load`.
+- `app/services/rag.py` — `SEMANTIC_CHUNK_THRESHOLD`, `EMBED_MODEL_NAME`, and `retrieve()`/`_mmr()`'s default `k`/`rrf_k`/`fetch_n`/`mmr_lambda` now read from `config/app_config.yaml`'s `rag` section instead of hardcoded literals.
+- Verified: agent configs and RAG retrieval both load and work correctly from the new config files.
+
+**Phase 8 — Working Memory**
+- `app/models/schemas.py` — added `WorkingMemory` (transaction, signals, policy_chunks, procedural_insights, percy_verdict, moody_verdict), replacing implicit function-argument passing between Percy and Moody.
+- `app/services/percy.py`, `app/services/moody.py` — refactored `analyze()`/`review()` and their `build_prompt()`s to take and mutate a single `WorkingMemory` object in place, returning just the call cost.
+
+**Phase 9+10 — Episodic + Procedural Memory (reuses the existing Postgres/Supabase infra, per user's explicit choice — no third persistence mechanism)**
+- `app/services/audit_store.py` — added `EpisodicVerdictRecord`/`ProceduralInsightRecord` SQLAlchemy tables and `record_episode()`/`get_episodes()`/`record_correction()`/`save_procedural_insight()`/`get_active_procedural_insights()` on `AuditStore` (both the SQL-backed and `InMemoryAuditStore` implementations).
+- `app/services/procedural.py` — added `synthesize_insight()`: a pure function that derives a TTL'd advisory (7 days) from a vendor's corrected-false-positive history (needs 2+ corrections of the same anomaly_type before it fires) — the dynamic Procedural Memory tier. Static Procedural Memory remains `app/services/signals.py`, unchanged.
+- `app/services/orchestrator.py` — `_audit_one()` now fetches active procedural insights for the transaction's vendor before analysis, and records an `EpisodicEntry` (including Moody's raw decision) after every transaction. `_refresh_procedural_insights()` re-synthesizes insights per unique vendor at the start of each run (no-op until corrections accumulate). Redteam fixture runs are intentionally *not* recorded to Episodic Memory (synthetic data, not real vendor history).
+- `app/models/schemas.py` — added `EpisodicEntry`, `ProceduralInsight` models; added `moody_decision: str | None` to `Verdict` so the raw decision (not just the `confirmed_by_moody` bool) is available for episodic recording.
+- `app/api/v1/endpoints/audit.py` — added `POST /api/v1/audit/verdicts/{transaction_id}/correct` so a human reviewer can record a correction, which feeds the next run's procedural insight synthesis.
+
+**Phase 11 — Guardrails**
+- `app/guardrails/` — added: `pii.py::scrub_pii()` (redacts email/phone/account-number-shaped patterns, applied to correction notes before persistence), `injection.py::detect_injection()` (regex pre-check on retrieved policy text, logs a warning — supplements, does not replace, the existing prompt-level anti-injection instructions), `citation.py::verify_citation()` (rejects/routes-to-human-review a flagged verdict whose `policy_ref` doesn't actually appear in the retrieved chunks — anti-hallucinated-citation check).
+- `app/services/orchestrator.py::_apply_guardrails()` — wires both checks in after Percy/Moody's verdict, gated by `config/app_config.yaml`'s `guardrails.injection_check_enabled`/`citation_check_enabled`.
+
+**Phase 12 — `DATABASE_URL`**
+- `app/services/audit_store.py::_resolve_dsn()` — `DATABASE_URL` now takes priority if set, falling back to `SUPABASE_DB_DSN`/`POSTGRES_DSN` per `DB_BACKEND` — all three vars kept, per user's explicit choice.
+- `.env.example` — added `DATABASE_URL` with a safe placeholder shape (`postgresql://postgres:<password>@localhost:5433/<dbname>`) and a comment noting it's never a real committed credential.
+
+**Tests added**: `test_procedural.py` (4 cases, pure), `test_guardrails.py` (7 cases, pure), 4 new cases in `test_audit_store.py` (episodic/procedural round-trips, PII scrubbing on correction notes) — all deterministic, no LLM. Updated `test_integration_agents.py` call sites for the new `_audit_one(..., store)`/`_run_false_positive_redteam(..., store)` signatures.
+
+**Verified**: `uv run ruff check .` clean. `uv run pytest --ignore=tests/test_integration_agents.py` — 34/34 passed. `uv run pytest tests/test_integration_agents.py` (live-LLM, ~$1) — 4/4 passed against the fully refactored pipeline (WorkingMemory, Episodic Memory recording, guardrails all active).

@@ -1,0 +1,8 @@
+# Per-agent prompt version. If an agent's configured version file is missing, the
+# loader falls back to v1 (see app/ai/config/prompt_loader.py).
+default_version: v1
+
+agents:
+  hermione: v1
+  percy: v1
+  moody: v1

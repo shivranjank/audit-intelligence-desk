@@ -1,0 +1,11 @@
+rag:
+  embed_model: nomic-ai/nomic-embed-text-v1.5
+  semantic_chunk_threshold: 0.5
+  retrieve_k: 3
+  rrf_k: 60
+  fetch_n: 10
+  mmr_lambda: 0.5
+
+guardrails:
+  injection_check_enabled: true
+  citation_check_enabled: true

@@ -46,6 +46,43 @@ class Verdict(BaseModel):
     reasoning: str
     confirmed_by_moody: bool | None = None
     moody_notes: str | None = None
+    moody_decision: str | None = None  # raw "confirm"|"overturn"|"route_to_human_review", for Episodic Memory
+
+
+class WorkingMemory(BaseModel):
+    """Explicit per-transaction state threaded through Percy -> Moody, replacing
+    implicit function-argument passing (Working Memory tier)."""
+
+    transaction: Transaction
+    signals: Signals | None = None
+    policy_chunks: list[PolicyChunk] = []
+    procedural_insights: list[str] = []
+    percy_verdict: Verdict | None = None
+    moody_verdict: Verdict | None = None
+
+
+class EpisodicEntry(BaseModel):
+    """One past audit outcome, persisted for future recall (Episodic Memory tier)."""
+
+    transaction_id: str
+    vendor: str
+    approver: str
+    anomaly_type: AnomalyType | None = None
+    flagged: bool
+    moody_decision: str | None = None
+    created_at: datetime
+    corrected_by_human: bool = False
+    correction_notes: str | None = None
+
+
+class ProceduralInsight(BaseModel):
+    """A learned, TTL'd advisory synthesized from Episodic Memory corrections
+    (dynamic Procedural Memory tier — the static tier is app/services/signals.py)."""
+
+    scope_key: str
+    insight_text: str
+    created_at: datetime
+    expires_at: datetime
 
 
 class RedteamResult(BaseModel):

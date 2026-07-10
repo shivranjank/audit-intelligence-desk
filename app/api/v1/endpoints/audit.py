@@ -3,6 +3,7 @@ import os
 
 from fastapi import APIRouter, Header, HTTPException
 from loguru import logger
+from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from app.models.schemas import AuditReport
@@ -69,3 +70,17 @@ async def get_audit_report(session_id: str) -> AuditReport:
         )
     logger.success(f"GET /api/v1/audit/reports/{session_id} | status=200")
     return report
+
+
+class CorrectionRequest(BaseModel):
+    notes: str
+
+
+@router.post("/verdicts/{transaction_id}/correct")
+async def record_correction(transaction_id: str, body: CorrectionRequest) -> dict:
+    """Records a human correction to a past verdict (Episodic Memory), which feeds
+    dynamic Procedural Memory's advisory synthesis on the next audit run."""
+    logger.info(f"POST /api/v1/audit/verdicts/{transaction_id}/correct")
+    get_audit_store().record_correction(transaction_id, body.notes)
+    logger.success(f"POST /api/v1/audit/verdicts/{transaction_id}/correct | status=200")
+    return {"status": "ok"}

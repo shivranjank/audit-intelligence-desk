@@ -4,12 +4,17 @@ from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
 
+import yaml
 from loguru import logger
 
 from app.ai.config.agents import HERMIONE
-from app.models.schemas import AuditReport, RedteamResult, Transaction, Verdict
+from app.guardrails.citation import verify_citation
+from app.guardrails.injection import detect_injection
+from app.models.schemas import AuditReport, EpisodicEntry, RedteamResult, Transaction, Verdict, WorkingMemory
 from app.services import moody, percy
+from app.services.audit_store import AuditStore, get_audit_store
 from app.services.llm import run_agent
+from app.services.procedural import synthesize_insight
 from app.services.rag import PolicyRAG, load_policy_chunk
 from app.services.signals import compute_signals
 
@@ -17,6 +22,9 @@ TRANSACTIONS_PATH = Path("data/transactions.json")
 GROUND_TRUTH_PATH = Path("data/ground_truth.json")
 FALSE_POSITIVE_FIXTURE_PATH = Path("data/redteam/false_positive_fixture.json")
 INJECTION_FIXTURE_PATH = Path("data/redteam/injection_policy_fixture.md")
+APP_CONFIG_PATH = Path("config/app_config.yaml")
+
+_GUARDRAILS_CONFIG = yaml.safe_load(APP_CONFIG_PATH.read_text(encoding="utf-8"))["guardrails"]
 
 
 def load_transactions(path: Path = TRANSACTIONS_PATH) -> list[Transaction]:
@@ -43,16 +51,73 @@ def get_policy_rag() -> PolicyRAG:
     return rag
 
 
-async def _audit_one(
-    transaction: Transaction, all_transactions: list[Transaction], rag: PolicyRAG
-) -> tuple[Verdict, float]:
-    sig = compute_signals(transaction, all_transactions)
-    verdict, cost, policy_chunks = await percy.analyze(transaction, sig, rag)
-    total_cost = cost
+def _refresh_procedural_insights(store: AuditStore, transactions: list[Transaction]) -> None:
+    """Re-synthesize procedural insights for every vendor in this batch, from
+    whatever corrected episodes already exist in Episodic Memory. No-op on a fresh
+    store (no episodes yet) until human corrections accumulate over time."""
+    for vendor in {t.vendor for t in transactions}:
+        episodes = store.get_episodes(vendor)
+        insight = synthesize_insight(vendor, episodes)
+        if insight is not None:
+            store.save_procedural_insight(insight)
+            logger.debug(f"ACTION: procedural insight refreshed | vendor={vendor}")
 
+
+def _apply_guardrails(memory: WorkingMemory, verdict: Verdict) -> Verdict:
+    if _GUARDRAILS_CONFIG.get("injection_check_enabled", True):
+        for chunk in memory.policy_chunks:
+            if detect_injection(chunk.text):
+                logger.warning(
+                    f"WARNING: guardrail | injection pattern detected in retrieved chunk "
+                    f"policy_ref={chunk.policy_ref} transaction_id={memory.transaction.transaction_id}"
+                )
+
+    if _GUARDRAILS_CONFIG.get("citation_check_enabled", True) and not verify_citation(verdict, memory.policy_chunks):
+        logger.warning(
+            f"WARNING: guardrail | citation check failed for policy_ref={verdict.policy_ref!r} "
+            f"transaction_id={memory.transaction.transaction_id} - routing to human review"
+        )
+        verdict = verdict.model_copy(
+            update={
+                "flagged": True,
+                "reasoning": verdict.reasoning
+                + " [GUARDRAIL: cited policy_ref could not be verified against retrieved policy text; "
+                "routed to human review.]",
+            }
+        )
+
+    return verdict
+
+
+async def _audit_one(
+    transaction: Transaction, all_transactions: list[Transaction], rag: PolicyRAG, store: AuditStore
+) -> tuple[Verdict, float]:
+    memory = WorkingMemory(
+        transaction=transaction,
+        signals=compute_signals(transaction, all_transactions),
+        procedural_insights=store.get_active_procedural_insights(transaction.vendor),
+    )
+    total_cost = await percy.analyze(memory, rag)
+
+    verdict = memory.percy_verdict
     if verdict.flagged:
-        verdict, moody_cost = await moody.review(transaction, verdict, policy_chunks)
+        moody_cost = await moody.review(memory)
         total_cost += moody_cost
+        verdict = memory.moody_verdict
+
+    verdict = _apply_guardrails(memory, verdict)
+
+    store.record_episode(
+        EpisodicEntry(
+            transaction_id=transaction.transaction_id,
+            vendor=transaction.vendor,
+            approver=transaction.approver,
+            anomaly_type=verdict.anomaly_type,
+            flagged=verdict.flagged,
+            moody_decision=verdict.moody_decision,
+            created_at=datetime.now(UTC),
+        )
+    )
 
     return verdict, total_cost
 
@@ -73,11 +138,11 @@ def _score(verdicts: list[Verdict], ground_truth: dict[str, dict]) -> tuple[floa
     return accuracy, false_positives, false_negatives
 
 
-async def _run_false_positive_redteam(rag: PolicyRAG) -> tuple[RedteamResult, float]:
+async def _run_false_positive_redteam(rag: PolicyRAG, store: AuditStore) -> tuple[RedteamResult, float]:
     fixture = json.loads(FALSE_POSITIVE_FIXTURE_PATH.read_text(encoding="utf-8"))
     transaction = Transaction(**fixture["transaction"])
 
-    verdict, cost = await _audit_one(transaction, [transaction], rag)
+    verdict, cost = await _audit_one(transaction, [transaction], rag, store)
     passed = not verdict.flagged
     detail = (
         "Correctly cleared the policy-compliant edge case."
@@ -91,7 +156,8 @@ async def _run_false_positive_redteam(rag: PolicyRAG) -> tuple[RedteamResult, fl
 
 async def _run_injection_redteam(clean_rag: PolicyRAG, transactions: list[Transaction]) -> tuple[RedteamResult, float]:
     """Force-expose the injection fixture alongside real policy text for a known
-    anomalous transaction, and confirm the agents still flag it correctly."""
+    anomalous transaction, and confirm the agents still flag it correctly. Not
+    recorded to Episodic Memory - this is a synthetic fixture, not real vendor history."""
     off_hours_txn = next((t for t in transactions if t.transaction_id == "TXN-0047"), None)
     if off_hours_txn is None:
         raise ValueError(
@@ -100,13 +166,16 @@ async def _run_injection_redteam(clean_rag: PolicyRAG, transactions: list[Transa
         )
     injection_chunk = load_policy_chunk(INJECTION_FIXTURE_PATH)
 
-    sig = compute_signals(off_hours_txn, transactions)
     real_chunks = clean_rag.retrieve(percy.retrieval_query(off_hours_txn), k=2)
-    contaminated_chunks = [*real_chunks, injection_chunk]
+    memory = WorkingMemory(
+        transaction=off_hours_txn,
+        signals=compute_signals(off_hours_txn, transactions),
+        policy_chunks=[*real_chunks, injection_chunk],
+    )
 
-    prompt = percy.build_prompt(off_hours_txn, sig, contaminated_chunks)
+    prompt = percy.build_prompt(memory)
     output, cost = await run_agent(percy.PERCY, prompt, output_schema=percy.VERDICT_SCHEMA)
-    verdict = Verdict(
+    memory.percy_verdict = Verdict(
         transaction_id=off_hours_txn.transaction_id,
         flagged=output["flagged"],
         anomaly_type=output["anomaly_type"],
@@ -115,9 +184,11 @@ async def _run_injection_redteam(clean_rag: PolicyRAG, transactions: list[Transa
     )
 
     total_cost = cost
+    verdict = memory.percy_verdict
     if verdict.flagged:
-        verdict, moody_cost = await moody.review(off_hours_txn, verdict, contaminated_chunks)
+        moody_cost = await moody.review(memory)
         total_cost += moody_cost
+        verdict = memory.moody_verdict
 
     passed = verdict.flagged
     detail = (
@@ -155,12 +226,14 @@ async def stream_audit():
     ground_truth = load_ground_truth()
 
     rag = get_policy_rag()
+    store = get_audit_store()
+    _refresh_procedural_insights(store, transactions)
 
     total_cost = 0.0
     verdicts: list[Verdict] = []
     for transaction in transactions:
         try:
-            verdict, cost = await _audit_one(transaction, transactions, rag)
+            verdict, cost = await _audit_one(transaction, transactions, rag, store)
         except Exception as exc:  # noqa: BLE001 - degrade gracefully per-transaction, don't abort the run
             logger.error(f"FAILED: audit transaction={transaction.transaction_id} | reason={exc}")
             verdict = Verdict(
@@ -176,7 +249,7 @@ async def stream_audit():
     accuracy, false_positives, false_negatives = _score(verdicts, ground_truth)
 
     redteam_results: list[RedteamResult] = []
-    fp_result, fp_cost = await _run_false_positive_redteam(rag)
+    fp_result, fp_cost = await _run_false_positive_redteam(rag, store)
     redteam_results.append(fp_result)
     total_cost += fp_cost
     yield "redteam", fp_result.model_dump()

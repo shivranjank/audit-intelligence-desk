@@ -11,8 +11,15 @@ from sentence_transformers import SentenceTransformer
 from app.models.schemas import PolicyChunk
 
 POLICIES_DIR = Path("data/policies")
-SEMANTIC_CHUNK_THRESHOLD = 0.5
-EMBED_MODEL_NAME = "nomic-ai/nomic-embed-text-v1.5"
+APP_CONFIG_PATH = Path("config/app_config.yaml")
+_RAG_CONFIG = yaml.safe_load(APP_CONFIG_PATH.read_text(encoding="utf-8"))["rag"]
+
+SEMANTIC_CHUNK_THRESHOLD = _RAG_CONFIG["semantic_chunk_threshold"]
+EMBED_MODEL_NAME = _RAG_CONFIG["embed_model"]
+DEFAULT_RETRIEVE_K = _RAG_CONFIG["retrieve_k"]
+DEFAULT_RRF_K = _RAG_CONFIG["rrf_k"]
+DEFAULT_FETCH_N = _RAG_CONFIG["fetch_n"]
+DEFAULT_MMR_LAMBDA = _RAG_CONFIG["mmr_lambda"]
 
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
 
@@ -108,7 +115,13 @@ class PolicyRAG:
 
         logger.success(f"ACTION: build_index | output=chunks={len(chunks)}")
 
-    def retrieve(self, query: str, k: int = 3, rrf_k: int = 60, fetch_n: int = 10) -> list[PolicyChunk]:
+    def retrieve(
+        self,
+        query: str,
+        k: int = DEFAULT_RETRIEVE_K,
+        rrf_k: int = DEFAULT_RRF_K,
+        fetch_n: int = DEFAULT_FETCH_N,
+    ) -> list[PolicyChunk]:
         if self._index is None or self._bm25 is None or self._embeddings is None:
             raise RuntimeError("Index not built. Call build_index() first.")
 
@@ -133,7 +146,9 @@ class PolicyRAG:
         selected = self._mmr(query_embedding[0], candidate_indices, k=min(k, len(candidate_indices)))
         return [self._chunks[i] for i in selected]
 
-    def _mmr(self, query_vec: np.ndarray, candidate_indices: list[int], k: int, lambda_mult: float = 0.5) -> list[int]:
+    def _mmr(
+        self, query_vec: np.ndarray, candidate_indices: list[int], k: int, lambda_mult: float = DEFAULT_MMR_LAMBDA
+    ) -> list[int]:
         if not candidate_indices:
             return []
         remaining = list(candidate_indices)

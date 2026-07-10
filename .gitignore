@@ -29,3 +29,10 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Claude Code session/harness artifacts
+.claude/
+
+# Export/backup artifacts (auto-generated, not project source)
+FinalProject_Code.zip
+FinalProject_Code/

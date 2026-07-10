@@ -19,6 +19,16 @@ REVIEW_SCHEMA = {
 }
 
 
+def _resolve_flagged(original_flagged: bool, decision: MoodyDecision) -> bool:
+    """Decide the final `flagged` state after Moody's review.
+
+    Both "confirm" and "route_to_human_review" keep the transaction flagged/surfaced
+    for a human (per POL-APPROVER-01, some anomaly types are correctly routed to human
+    review rather than confirmed outright as fraud) — only "overturn" clears it.
+    """
+    return original_flagged and decision != "overturn"
+
+
 def _build_prompt(transaction: Transaction, verdict: Verdict, policy_chunks: list[PolicyChunk]) -> str:
     policy_text = "\n\n".join(f"[{c.policy_ref}] {c.title}\n{c.text}" for c in policy_chunks)
     return (
@@ -46,7 +56,7 @@ async def review(transaction: Transaction, verdict: Verdict, policy_chunks: list
 
     reviewed = verdict.model_copy(
         update={
-            "flagged": verdict.flagged and decision == "confirm",
+            "flagged": _resolve_flagged(verdict.flagged, decision),
             "confirmed_by_moody": decision == "confirm",
             "moody_notes": output["notes"],
         }

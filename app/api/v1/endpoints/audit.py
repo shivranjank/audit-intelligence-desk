@@ -1,6 +1,7 @@
 import json
+import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from loguru import logger
 from sse_starlette.sse import EventSourceResponse
 
@@ -11,9 +12,34 @@ from app.services.orchestrator import stream_audit
 router = APIRouter(prefix="/audit", tags=["audit"])
 
 
+def _check_audit_api_key(x_audit_api_key: str | None) -> None:
+    """Optional shared-secret gate for the costly /audit/run endpoint.
+
+    If AUDIT_API_KEY is unset, no auth is enforced (preserves current local/dev
+    behavior). If set, callers must send a matching X-Audit-Api-Key header.
+    """
+    expected = os.getenv("AUDIT_API_KEY")
+    if not expected:
+        return
+    if x_audit_api_key != expected:
+        logger.warning("WARNING: /api/v1/audit/run | rejected request with missing/invalid AUDIT_API_KEY")
+        raise HTTPException(
+            status_code=401,
+            detail={"status": "error", "code": "UNAUTHORIZED", "detail": "Missing or invalid X-Audit-Api-Key header."},
+        )
+
+
 @router.get("/run")
-async def run_audit_stream() -> EventSourceResponse:
+async def run_audit_stream(x_audit_api_key: str | None = Header(default=None)) -> EventSourceResponse:
+    """Runs the full transaction audit batch (~50 transactions, several LLM calls each).
+
+    Costs real money (~$10-15 per run) and has no auth by default. Set the AUDIT_API_KEY
+    env var to require a matching X-Audit-Api-Key header; if unset, this endpoint is
+    open to anyone who can reach it — do not expose it beyond localhost/dev without
+    setting AUDIT_API_KEY.
+    """
     logger.info("GET /api/v1/audit/run")
+    _check_audit_api_key(x_audit_api_key)
 
     async def event_generator():
         try:
